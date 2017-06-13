@@ -1,4 +1,4 @@
-## Dr. Robert Sedgewick's Algorithm's course
+## Dr. Robert Sedgewick's Algorithms course
 
 Taken in 2017  
 Used openjdk version 1.8.0\_131  
