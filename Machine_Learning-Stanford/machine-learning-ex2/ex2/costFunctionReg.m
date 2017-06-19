@@ -24,11 +24,11 @@ grad = zeros(size(theta));
 J_theta = (lambda/(2*m))*(theta(2:end).**2);
 grad_theta = (lambda/m)*(theta(2:end));
 
-% Prepend theta(1)
-J_theta = cat(1, theta(1), J_theta);
-grad_theta = cat(1, 0, grad_theta); % Putting back theta(1) leads to an error
+% Prepend with a 0, theta(1) leads to error of J for some reason
+J_theta = cat(1, 0, J_theta);
+grad_theta = cat(1, 0, grad_theta);
 
-J = J + J_theta;
+J = J + sum(J_theta);
 grad = grad + grad_theta'; % Oddly, this makes a 28*28 matrix if not using grad_theta'
 
 
