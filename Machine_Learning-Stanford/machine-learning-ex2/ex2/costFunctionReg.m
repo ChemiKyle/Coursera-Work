@@ -29,7 +29,7 @@ J_theta = cat(1, 0, J_theta);
 grad_theta = cat(1, 0, grad_theta);
 
 J = J + sum(J_theta);
-grad = grad + grad_theta'; % Oddly, this makes a 28*28 matrix if not using grad_theta'
+grad = grad + grad_theta'; % This makes a 28*28 matrix if not using grad_theta'
 
 
 % =============================================================
