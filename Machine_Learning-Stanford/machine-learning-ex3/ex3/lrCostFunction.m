@@ -1,14 +1,14 @@
 function [J, grad] = lrCostFunction(theta, X, y, lambda)
-%LRCOSTFUNCTION Compute cost and gradient for logistic regression with 
+%LRCOSTFUNCTION Compute cost and gradient for logistic regression with
 %regularization
 %   J = LRCOSTFUNCTION(theta, X, y, lambda) computes the cost of using
 %   theta as the parameter for regularized logistic regression and the
-%   gradient of the cost w.r.t. to the parameters. 
+%   gradient of the cost w.r.t. to the parameters.
 
 % Initialize some useful values
 m = length(y); % number of training examples
 
-% You need to return the following variables correctly 
+% You need to return the following variables correctly
 J = 0;
 grad = zeros(size(theta));
 
@@ -25,25 +25,38 @@ grad = zeros(size(theta));
 %
 %       Each row of the resulting matrix will contain the value of the
 %       prediction for that example. You can make use of this to vectorize
-%       the cost function and gradient computations. 
+%       the cost function and gradient computations.
 %
-% Hint: When computing the gradient of the regularized cost function, 
+% Hint: When computing the gradient of the regularized cost function,
 %       there're many possible vectorized solutions, but one solution
 %       looks like:
 %           grad = (unregularized gradient for logistic regression)
-%           temp = theta; 
-%           temp(1) = 0;   % because we don't add anything for j = 0  
+%           temp = theta;
+%           temp(1) = 0;   % because we don't add anything for j = 0
 %           grad = grad + YOUR_CODE_HERE (using the temp variable)
 %
 
+% Copied from ex2 cost functions since I vectorized there
+% Small alterations made to match assignment notation
 
+% Unregularized implementation
+h_g_z = sigmoid(X*theta); % theta'*X gives size error
+J = (1/m)*((-y)'*log(h_g_z) - (1-y)'*log(1-h_g_z));
 
+Beta = (h_g_z - y); % From assignment, note that lowercase `beta` is a function
+grad = (1/m) * (Beta'*X);
 
+% Regularization
+% Perform math on all but theta 1
+J_theta = (lambda/(2*m))*(theta(2:end).**2);
+grad_theta = (lambda/m)*(theta(2:end));
 
+% Prepend with a 0, reusing theta(1) leads to error in J for some reason
+J_theta = cat(1, 0, J_theta);
+grad_theta = cat(1, 0, grad_theta);
 
-
-
-
+J = J + sum(J_theta);
+grad = grad + grad_theta';
 
 % =============================================================
 
