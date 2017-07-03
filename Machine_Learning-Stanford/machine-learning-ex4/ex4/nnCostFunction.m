@@ -75,7 +75,10 @@ y_i = eye(K); % y_i has y_i(i) = 1 for i and 0 for all else in each row
 y = y_i(y,:); % Match size to X
 
 % Reuse last week's lrCostFunction, converted to dot product, double sum
-J = (1/m)*sum(sum((-y).*log(a3) - (1-y).*log(1-a3)));
+J = (1/m)*sum(sum((-y).*log(a3) - (1-y).*log(1-a3))); % This satisfies 1.3
+
+% Regularization, have to skip first term in thetas or val is slightly off
+J += (lambda/(2*m))*(sum(sum(Theta1(:,2:end).**2)) + sum(sum(Theta2(:,2:end).**2)));
 
 % -------------------------------------------------------------
 
