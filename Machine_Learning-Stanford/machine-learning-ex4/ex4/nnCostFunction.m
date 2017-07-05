@@ -62,10 +62,12 @@ Theta2_grad = zeros(size(Theta2));
 %               and Theta2_grad from Part 2.
 %
 
+% Part 1: Forward Propagation
 
 % Adapt method from last week's predict script
 a1 = [ones(m, 1) X]; % Add a1,0 to X to make a1
-a2 = sigmoid(a1*Theta1');
+z2 = a1*Theta1'; % Explicitly define this since it's used later
+a2 = sigmoid(z2);
 a2 = [ones(m, 1) a2]; % Add a2,0 to make correct
 a3 = sigmoid(a2*Theta2');
 
@@ -77,8 +79,22 @@ y = y_i(y,:); % Match size to X
 % Reuse last week's lrCostFunction, converted to dot product, double sum
 J = (1/m)*sum(sum((-y).*log(a3) - (1-y).*log(1-a3))); % This satisfies 1.3
 
-% Regularization, have to skip first term in thetas or val is slightly off
+% Regularization, cut off bias units for thetas
 J += (lambda/(2*m))*(sum(sum(Theta1(:,2:end).**2)) + sum(sum(Theta2(:,2:end).**2)));
+
+% Part 2: Backpropagation
+% A for loop is not actually needed here
+d3 = a3 - y;
+d2 = d3*Theta2.*sigmoidGradient([ones(m, 1) z2]); % Match sizes
+d2 = d2(:, 2:end); % Cut off bias units
+
+Theta1_grad = (d2'*a1)/m;
+Theta2_grad = (d3'*a2)/m;
+
+% Part 3: Regularization
+
+Theta1_grad(:, 2:end) += (lambda/m).*Theta1(:,2:end);
+Theta2_grad(:, 2:end) += (lambda/m).*Theta2(:,2:end);
 
 % -------------------------------------------------------------
 
