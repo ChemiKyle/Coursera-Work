@@ -23,6 +23,9 @@ grad = zeros(size(theta));
 J = (1/(2*m))*(sum(((X * theta) - y).^2));
 J += sum((lambda/(2*m))*(theta(2:end).**2)); % regularize
 
+grad = (1/m) * X'*((X*theta - y)); % Have to move X first or get submission error
+grad(2:end) += (lambda/m)*(theta(2:end)); % regularize
+
 % =========================================================================
 
 grad = grad(:);
