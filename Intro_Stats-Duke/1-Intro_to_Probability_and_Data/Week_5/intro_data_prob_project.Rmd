@@ -1,0 +1,84 @@
+---
+title: "Exploring the BRFSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+```
+
+### Load data
+
+```{r load-data}
+load("brfss2013.RData")
+```
+
+
+
+* * *
+
+## Part 1: Data
+
+The observations in th BRFSS 2013 are collected via phone calls (both cell and 
+landline). Landline interviewees are randomly selected adults within a household, 
+cell interviewees reside in either private residences or college housing.
+
+This makes the information only generalizable to individuals who have:
+1. A phone of either type
+2. Stable living situation
+
+While this may represent a majority of the population, it excludes many groups 
+who may engage in behavior qualifying as making them "at risk." Especially for the 
+topic of `immunization` this makes the data non-generalizable (due to how herd 
+immunity's effectiveness is susceptible to deviations from "normalcy" by small groups)
+
+* * *
+
+## Part 2: Research questions
+
+**Research quesion 1:**
+
+**Research quesion 2:**
+
+**Research quesion 3:**
+
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+NOTE: Insert code chunks as needed by clicking on the "Insert a new code chunk" 
+button (green button with orange arrow) above. Make sure that your code is visible
+in the project you submit. Delete this note when before you submit your work.
+
+**Research quesion 1:**
+
+```{r}
+
+```
+
+
+
+**Research quesion 2:**
+
+```{r}
+
+```
+
+
+
+**Research quesion 3:**
+
+```{r}
+
+```
+
