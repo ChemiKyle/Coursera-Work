@@ -47,9 +47,9 @@ immunity's effectiveness is susceptible to deviations from "normalcy" by small g
 ## Part 2: Research questions
 
 **Research quesion 1:**
-What is the relation between mental health and state residency?
+What is the relation between mental health and state residency?  
 **Research quesion 2:**
-Do Students who live on campus have different sleeping habits?
+Do Students who live on campus have different sleeping habits?  
 **Research quesion 3:**
 Do the financially insecure live in a harsher world? (subject to data availability)
 snctmony and misphlpf
@@ -71,14 +71,38 @@ sadstate <- brfss2013 %>%
   na.omit()
 colnames(sadstate) <- c("state", "mntl")
 
-p <- ggplot(data = sadstate, aes(x = mntl)) +
-  geom_bar() +
-  labs(title = "Poor Mental Health Days per Respondent",
-       x = "Number of bad mental health days in the past month",
-       y = "Number of respondents")
-p
+# We'll be subsetting this data, so make a function for plotting
+plot.bad.days <- function(sadstate) {
+  p <- ggplot(data = sadstate, aes(x = mntl)) +
+    geom_bar() +
+    labs(title = "Poor Mental Health Days per Respondent",
+        x = "Number of bad mental health days in the past month",
+        y = "Number of respondents")
+  return(p)
+}
+
+plot.bad.days(sadstate)
 ```
- The data are heavily right skewed, so mean is unreliable.
+The data are heavily right skewed, so mean is unreliable. Let's subset further and look at only respondents who have had at least one bad day in the past month.  
+```{r}
+sadstate <- sadstate %>%
+  filter(mntl > 0)
+
+plot.bad.days(sadstate)
+```
+
+Now we see a multimodal ditribution clustured around multiples of 5, the mode of which is 30.
+
+```{r}
+plot.bad.days(sadstate %>%
+                filter(mntl < 30)) +
+  # Higlight every 5th bar, credit: https://stackoverflow.com/questions/49709563/highlight-every-nth-bar-using-geom-bar
+  geom_bar(aes(fill = (mntl %% 5 == 0), group = mntl), position = "identity") +
+  theme(legend.position = "none")
+```
+
+Taking into account the multimodality of the data, there appears to be a right skew when one does not consider individuals for whom every day has been one of poor mental health (these people likely suffer from a depressive disorder, let's quickly check on that).
+
 ```{r}
 natl_avg_bad_days <- mean(sadstate$mntl)
 natl_med_bad_days <- median(sadstate$mntl)
@@ -112,7 +136,13 @@ usa <- map_data("usa")
 **Research quesion 2:**
 
 ```{r}
-brfss2013$sleptim1
+students <- brfss2013 %>%
+  filter(employ1 == 'A student') %>%
+  select(sleptim1, cclghous) %>%
+  na.omit() %>%
+  group_by(cclghous) %>%
+  summarise(mean(sleptim1))
+students
 ```
 
 
