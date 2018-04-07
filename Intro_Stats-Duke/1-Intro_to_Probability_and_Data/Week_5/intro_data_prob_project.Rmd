@@ -83,7 +83,9 @@ plot.bad.days <- function(sadstate) {
 
 plot.bad.days(sadstate)
 ```
-The data are heavily right skewed, so mean is unreliable. Let's subset further and look at only respondents who have had at least one bad day in the past month.  
+
+The data are heavily right skewed, so mean is unreliable. Let's subset further and look at only respondents who have had at least one bad day in the past month.
+
 ```{r}
 sadstate <- sadstate %>%
   filter(mntl > 0)
@@ -91,17 +93,38 @@ sadstate <- sadstate %>%
 plot.bad.days(sadstate)
 ```
 
-Now we see a multimodal ditribution clustured around multiples of 5, the mode of which is 30.
+Now we see a multimodal ditribution clustured around multiples of 5, the mode of which is 30. These individuals likely suffer from a depressive disorder (let's briefly check that hypothesis).
+
+```{r}
+dep_chk <- brfss2013 %>%
+  select(menthlth, addepev2) %>%
+  na.omit() %>%
+  filter(menthlth > 0) %>%
+  group_by(addepev2)
+  
+ggplot(data = dep_chk, aes(x = menthlth)) +
+  geom_bar(aes(fill = addepev2), position = position_dodge((width = 0.9))) +
+  guides(fill = guide_legend(title = "Diagnosed Depression"))
+
+dep_chk %>%
+  summarise(mean(menthlth), median(menthlth))
+```
+
+People with diagnosed depression represent a majority of those who had 15 or more poor mental health days in the past 30 days.  
+Let's separate this group out for further analysis.
 
 ```{r}
 plot.bad.days(sadstate %>%
                 filter(mntl < 30)) +
   # Higlight every 5th bar, credit: https://stackoverflow.com/questions/49709563/highlight-every-nth-bar-using-geom-bar
   geom_bar(aes(fill = (mntl %% 5 == 0), group = mntl), position = "identity") +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  ggtitle("Poor Mental Health Days per Respondent, Multiples of Five Highlighted")
 ```
 
-Taking into account the multimodality of the data, there appears to be a right skew when one does not consider individuals for whom every day has been one of poor mental health (these people likely suffer from a depressive disorder, let's quickly check on that).
+Taking into account the multimodality of the data (somthing similar to a "rounding bias"), there appears to be a right skew when one does *not* consider individuals for whom every day has been one of poor mental health (these people likely suffer from a depressive disorder, let's quickly check on that).
+
+Unsurprisingly, people with diagnosed depressive disorders experience worse mental health!
 
 ```{r}
 natl_avg_bad_days <- mean(sadstate$mntl)
@@ -109,21 +132,28 @@ natl_med_bad_days <- median(sadstate$mntl)
 
 bad_days_by_state <- sadstate %>%
   group_by(state) %>%
-  summarise(state_avg = mean(mntl)) %>%
-  mutate(dev = state_avg - natl_avg_bad_days)
+  summarise(state_avg = mean(mntl), state_med = median(mntl)) %>%
+  mutate(avg_dev = state_avg - natl_avg_bad_days,
+         med_dev = state_med - natl_med_bad_days)
 
-p <- ggplot(data = bad_days_by_state %>%
-              arrange(desc(state_avg)), aes(x = reorder(state, state_avg), y = state_avg)) +
+p <- ggplot(data = bad_days_by_state %>% arrange(desc(state_avg)),
+            aes(x = reorder(state, state_avg), y = state_avg)) +
+  geom_hline(yintercept = natl_avg_bad_days, color = "red") +
+  geom_segment(aes(x = reorder(state, state_avg), y = natl_avg_bad_days,
+                 xend = state, yend = state_avg)) +
   geom_point() +
   theme(axis.text.x = element_text(angle=90)) +
   labs(title = "Average Poor Mental Health Days per State",
        x = "State",
        y = "Average Days per Month of Poor Mental Health") +
   coord_flip()
+ 
+
+p
 
 # TODO: Make a divergent color map centered at 0, use dev and map states with deviation
-range_dev <- range(bad_days_by_state$dev)
-
+range_avg_dev <- range(bad_days_by_state$avg_dev)
+range_med_dev <- range(bad_days_by_state$med_dev)
 # geom_polygon(data = bad_days_by_state, aes(fill = dev)) +
 # scale_fill_gradient(colors = c(blue, white, orange),
 #                    breaks = c(-1, 0, 1))
@@ -139,10 +169,24 @@ usa <- map_data("usa")
 students <- brfss2013 %>%
   filter(employ1 == 'A student') %>%
   select(sleptim1, cclghous) %>%
-  na.omit() %>%
+  na.omit()
+
+nonstudents <- brfss2013 %>%
+  filter(employ1 != 'A student') %>%
+  select(sleptim1) %>%
+  na.omit()
+
+ggplot(data = nonstudents, aes(x = sleptim1)) +
+  geom_bar()
+
+ggplot(data = students %>%
+         group_by(cclghous),
+       aes(x = sleptim1)) +
+  geom_bar(aes(fill = cclghous, group = cclghous), position = "identity")
+
+students %>%
   group_by(cclghous) %>%
-  summarise(mean(sleptim1))
-students
+  summarise(mean(sleptim1), median(sleptim1))
 ```
 
 
