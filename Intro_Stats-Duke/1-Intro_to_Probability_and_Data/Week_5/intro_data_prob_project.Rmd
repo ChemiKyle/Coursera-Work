@@ -39,7 +39,7 @@ This makes the information only generalizable to individuals who have:
 
 While this may represent a majority of the population, it excludes many groups 
 who may engage in behavior qualifying as making them "at risk." Especially for the 
-topic of `immunization` this makes the data non-generalizable (due to how herd 
+topic of `immunization` this makes the data non-generalizable to epidemiology studies (due to how herd 
 immunity's effectiveness is susceptible to deviations from "normalcy" by small groups)
 
 * * *
@@ -66,18 +66,18 @@ in the project you submit. Delete this note when before you submit your work.
 
 ```{r}
 sadstate <- brfss2013 %>%
-  select(X_state, menthlth) %>%
+  select(X_state, menthlth, addepev2) %>%
   filter(menthlth <= 31) %>% # Can't have more bad days than there are in a month
   na.omit()
-colnames(sadstate) <- c("state", "mntl")
+colnames(sadstate) <- c("state", "mntl", "dd")
 
 # We'll be subsetting this data, so make a function for plotting
 plot.bad.days <- function(sadstate) {
   p <- ggplot(data = sadstate, aes(x = mntl)) +
     geom_bar() +
     labs(title = "Poor Mental Health Days per Respondent",
-        x = "Number of bad mental health days in the past month",
-        y = "Number of respondents")
+        x = "Number of Bad Days in the Past 30",
+        y = "Respondents")
   return(p)
 }
 
@@ -93,36 +93,45 @@ sadstate <- sadstate %>%
 plot.bad.days(sadstate)
 ```
 
-Now we see a multimodal ditribution clustured around multiples of 5, the mode of which is 30. These individuals likely suffer from a depressive disorder (let's briefly check that hypothesis).
+Now we see a multimodal ditribution, that resembles a binomial distribution consisting of a right-skewed Gaussian at 2 and a narrow peak at 30.  
+What happens if we strip out that peak at 30?
 
 ```{r}
-dep_chk <- brfss2013 %>%
-  select(menthlth, addepev2) %>%
-  na.omit() %>%
-  filter(menthlth > 0) %>%
-  group_by(addepev2)
-  
-ggplot(data = dep_chk, aes(x = menthlth)) +
-  geom_bar(aes(fill = addepev2), position = position_dodge((width = 0.9))) +
-  guides(fill = guide_legend(title = "Diagnosed Depression"))
+plot.bad.days(sadstate %>% filter(mntl < 30)) +
+  # https://stackoverflow.com/questions/49709563/highlight-every-nth-bar-using-geom-bar
+  geom_bar(aes(fill = (mntl %% 5 == 0 | mntl == 2 | mntl == 7), group = mntl), position = "identity") +
+  theme(legend.position = "none") +
+  ggtitle("Poor Mental Health Days per Respondent, Common Responses Highlighted")
+```
+
+Taking into account the multimodality of the data (something similar to a "rounding bias" is occuring, 
+respondees seemed to commonly reflect that they'd had a couple bad days or a bad week, otherwise they were more likely to go by multiples of 5), 
+there is a clear right skew when one does *not* consider individuals for whom every day within the scope of their interview was one of poor mental health - 
+one might suspect these people suffer from a depressive disorder, let's quickly check on that.
+
+```{r}
+dep_chk <- sadstate %>%
+  group_by(dd)
 
 dep_chk %>%
-  summarise(mean(menthlth), median(menthlth))
+  summarise(mean(mntl), median(mntl))
+
+ggplot(data = dep_chk %>% filter(mntl < 30), aes(x = dd, y = mntl / 30 * 100)) +
+  geom_violin(aes(fill = dd),
+              draw_quantiles = c(0.25, 0.5, 0.75)) +
+  stat_summary(fun.y = mean, geom = "point", shape = 24) +
+  labs(title = "Relationship of Depression and Bad Days, with Quantiles",
+       x = "Diagnosed with Depression",
+       y = "Percentage of Poor Mental Health Days in Past 30") +
+  theme(legend.position = "None")
+
+ggplot(data = dep_chk, aes(x = mntl)) +
+  geom_bar(aes(fill = dd), position = position_dodge(width = 0.9)) +
+  scale_y_continuous() +
+  guides(fill = guide_legend(title = "Diagnosed Depression"))
 ```
 
 People with diagnosed depression represent a majority of those who had 15 or more poor mental health days in the past 30 days.  
-Let's separate this group out for further analysis.
-
-```{r}
-plot.bad.days(sadstate %>%
-                filter(mntl < 30)) +
-  # Higlight every 5th bar, credit: https://stackoverflow.com/questions/49709563/highlight-every-nth-bar-using-geom-bar
-  geom_bar(aes(fill = (mntl %% 5 == 0), group = mntl), position = "identity") +
-  theme(legend.position = "none") +
-  ggtitle("Poor Mental Health Days per Respondent, Multiples of Five Highlighted")
-```
-
-Taking into account the multimodality of the data (somthing similar to a "rounding bias"), there appears to be a right skew when one does *not* consider individuals for whom every day has been one of poor mental health (these people likely suffer from a depressive disorder, let's quickly check on that).
 
 Unsurprisingly, people with diagnosed depressive disorders experience worse mental health!
 
@@ -137,11 +146,12 @@ bad_days_by_state <- sadstate %>%
          med_dev = state_med - natl_med_bad_days)
 
 p <- ggplot(data = bad_days_by_state %>% arrange(desc(state_avg)),
-            aes(x = reorder(state, state_avg), y = state_avg)) +
+            aes(x = reorder(state, state_avg), y = state_avg,
+                labels = state_avg)) +
   geom_hline(yintercept = natl_avg_bad_days, color = "red") +
   geom_segment(aes(x = reorder(state, state_avg), y = natl_avg_bad_days,
                  xend = state, yend = state_avg)) +
-  geom_point() +
+  geom_point(stat = "identity") +
   theme(axis.text.x = element_text(angle=90)) +
   labs(title = "Average Poor Mental Health Days per State",
        x = "State",
@@ -192,8 +202,39 @@ students %>%
 
 
 **Research quesion 3:**
+"Financial struggle"" is defined as having worried about rent or food in the year prior to being surveyed.
 
 ```{r}
+# 
 
+harsh_world <- brfss2013 %>%
+  select(misphlpf, scntmony, scntmeal) %>%
+  na.omit() %>%
+  mutate(strgl = (scntmony != "Never" | scntmeal != "Never")) %>%
+  group_by(strgl)
+
+ggplot(harsh_world, aes(misphlpf, group = strgl)) +
+  geom_bar(aes(y = ..prop..,
+               fill = factor((strgl))),
+           position = position_dodge()) +
+  guides(fill = guide_legend(title = "Struggled in Past Year")) +
+  labs(title = "Financial Struggles and Mental Illness Perception",
+       x = "\"People Are Generally Caring Toward People With Mental Illness\"",
+       y = "Proportion of Respondents") +
+  coord_flip()
+  
+
+brkdn <- harsh_world %>% summarise(
+  sa = mean(misphlpf == "Agree strongly"),
+  a = mean(misphlpf == "Agree slightly"),
+  na = mean(misphlpf == "Neither agree nor disagree"),
+  d = mean(misphlpf == "Disagree slightly"),
+  sd = mean(misphlpf == "Disagree strongly")
+)
 ```
 
+```{r}
+#TODO: Analyze relationships between being diagnosed with depression, financial struggle, access to healthcare
+
+
+```
