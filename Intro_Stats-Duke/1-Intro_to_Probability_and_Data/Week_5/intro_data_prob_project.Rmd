@@ -84,7 +84,7 @@ plot.bad.days <- function(sadstate) {
 plot.bad.days(sadstate)
 ```
 
-The data are heavily right skewed, so mean is unreliable. Let's subset further and look at only respondents who have had at least one bad day in the past month.
+The data are heavily right skewed, so mean is unreliable. Let's subset further and look at only respondents who have had at least one bad day in the past month. Here we introduce a bias intentionally.
 
 ```{r}
 sadstate <- sadstate %>%
@@ -116,7 +116,7 @@ dep_chk <- sadstate %>%
 dep_chk %>%
   summarise(mean(mntl), median(mntl))
 
-ggplot(data = dep_chk %>% filter(mntl < 30), aes(x = dd, y = mntl / 30 * 100)) +
+ggplot(data = dep_chk, aes(x = dd, y = mntl / 30 * 100)) +
   geom_violin(aes(fill = dd),
               draw_quantiles = c(0.25, 0.5, 0.75)) +
   stat_summary(fun.y = mean, geom = "point", shape = 24) +
@@ -125,13 +125,24 @@ ggplot(data = dep_chk %>% filter(mntl < 30), aes(x = dd, y = mntl / 30 * 100)) +
        y = "Percentage of Poor Mental Health Days in Past 30") +
   theme(legend.position = "None")
 
-ggplot(data = dep_chk, aes(x = mntl)) +
-  geom_bar(aes(fill = dd), position = position_dodge(width = 0.9)) +
-  scale_y_continuous() +
+dep_cmp <- ggplot(data = dep_chk, aes(x = mntl)) +
+#  scale_y_continuous() +
   guides(fill = guide_legend(title = "Diagnosed Depression"))
+
+dep_cmp +
+  geom_bar(aes(fill = dd), position = "fill") +
+  geom_hline(yintercept = 0.5, alpha = 0.7, color = "red")
+
+dep_cmp +
+  geom_bar(aes(fill = dd), position = position_dodge(0.9))
 ```
 
 People with diagnosed depression represent a majority of those who had 15 or more poor mental health days in the past 30 days.  
+
+$ P(Depressed|\textup{More than 1 bad day} ) $
+
+
+#TODO: Bayesian probability of being depressed given 30 bad days.
 
 Unsurprisingly, people with diagnosed depressive disorders experience worse mental health!
 
@@ -145,7 +156,7 @@ bad_days_by_state <- sadstate %>%
   mutate(avg_dev = state_avg - natl_avg_bad_days,
          med_dev = state_med - natl_med_bad_days)
 
-p <- ggplot(data = bad_days_by_state %>% arrange(desc(state_avg)),
+pmh_lolliplot <- ggplot(data = bad_days_by_state %>% arrange(desc(state_avg)),
             aes(x = reorder(state, state_avg), y = state_avg,
                 labels = state_avg)) +
   geom_hline(yintercept = natl_avg_bad_days, color = "red") +
@@ -159,16 +170,32 @@ p <- ggplot(data = bad_days_by_state %>% arrange(desc(state_avg)),
   coord_flip()
  
 
-p
+pmh_lolliplot
+```
 
+```{r}
 # TODO: Make a divergent color map centered at 0, use dev and map states with deviation
+library(ggmap)
+
+geo <- geocode(location = as.character(bad_days_by_state$state), output = "latlon")
+
+bad_days_by_state$lat <- geo$lat
+bad_days_by_state$lon <- geo$lon
+
 range_avg_dev <- range(bad_days_by_state$avg_dev)
 range_med_dev <- range(bad_days_by_state$med_dev)
-# geom_polygon(data = bad_days_by_state, aes(fill = dev)) +
-# scale_fill_gradient(colors = c(blue, white, orange),
-#                    breaks = c(-1, 0, 1))
 
 usa <- map_data("usa")
+
+pmh_map <- ggplot() +
+  geom_polygon(data = bad_days_by_state %>% na.omit(),
+               aes(x = lon, y = lat, fill = avg_dev)) +
+  coord_map()
+
+pmh_map
+
+# scale_fill_gradient(colors = c(blue, white, orange),
+#                    breaks = c(-1, 0, 1))
 ```
 
 
