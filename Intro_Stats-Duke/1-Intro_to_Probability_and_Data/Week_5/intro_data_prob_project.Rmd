@@ -174,25 +174,31 @@ pmh_lolliplot
 ```
 
 ```{r}
-# TODO: Make a divergent color map centered at 0, use dev and map states with deviation
-library(ggmap)
 
-geo <- geocode(location = as.character(bad_days_by_state$state), output = "latlon")
+library(maps)
 
-bad_days_by_state$lat <- geo$lat
-bad_days_by_state$lon <- geo$lon
+# geo <- geocode(location = as.character(bad_days_by_state$state), output = "latlon")
+
+#bad_days_by_state$lat <- geo$lat
+#bad_days_by_state$lon <- geo$lon
 
 range_avg_dev <- range(bad_days_by_state$avg_dev)
-range_med_dev <- range(bad_days_by_state$med_dev)
+range_arange_med_dev <- range(bad_days_by_state$med_dev)
 
 usa <- map_data("usa")
 
-pmh_map <- ggplot() +
-  geom_polygon(data = bad_days_by_state %>% na.omit(),
-               aes(x = lon, y = lat, fill = avg_dev)) +
-  coord_map()
+#ggplot(data = states) + 
+#  geom_polygon(aes(x = long, y = lat, fill = bad_days_by_state$avg_dev, group = group), color = "white") + 
+#  coord_fixed(1.3) +
+#  guides(fill=FALSE)
+  
 
-pmh_map
+#pmh_map <- ggplot() +
+#  geom_polygon(data = bad_days_by_state %>% na.omit(),
+#               aes(x = lon, y = lat, fill = avg_dev)) +
+#  coord_map()
+
+#pmh_map
 
 # scale_fill_gradient(colors = c(blue, white, orange),
 #                    breaks = c(-1, 0, 1))
