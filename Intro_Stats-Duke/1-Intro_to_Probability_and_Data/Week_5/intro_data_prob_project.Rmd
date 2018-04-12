@@ -213,20 +213,16 @@ bad_days_by_state <- bad_days_by_state %>%
 
 bad_state <-inner_join(bad_days_by_state, states, by = "region")
 
-ggplot(data = bad_state) + 
+pmh_map <- ggplot(data = bad_state) + 
   geom_polygon(aes(x = long, y = lat, fill = avg_dev, group = group), color = "white") + 
   coord_fixed(1.3) +
-  guides(fill=FALSE) + ditch_the_axes
+  ditch_the_axes +
+  scale_fill_gradientn(colors = c("orange", "white", "navyblue"))
+ #                     breaks = c(-6, 0, 6))
 
-#pmh_map <- ggplot() +
-#  geom_polygon(data = bad_days_by_state %>% na.omit(),
-#               aes(x = lon, y = lat, fill = avg_dev)) +
-#  coord_map()
+pmh_map
 
-#pmh_map
 
-# scale_fill_gradient(colors = c(blue, white, orange),
-#                    breaks = c(-1, 0, 1))
 ```
 
 
