@@ -47,12 +47,11 @@ immunity's effectiveness is susceptible to deviations from "normalcy" by small g
 ## Part 2: Research questions
 
 **Research quesion 1:**
-What is the relation between mental health and state residency?  
+At what point should one seek out a doctor for depressive symptoms?
 **Research quesion 2:**
-Do Students who live on campus have different sleeping habits?  
+Is there a relation between mental health and state residency? 
 **Research quesion 3:**
-Do the financially insecure live in a harsher world? (subject to data availability)
-snctmony and misphlpf
+Do the financially insecure perceive the world to be harsher toward the mentally ill?
 
 * * *
 
@@ -126,25 +125,42 @@ ggplot(data = dep_chk, aes(x = dd, y = mntl / 30 * 100)) +
   theme(legend.position = "None")
 
 dep_cmp <- ggplot(data = dep_chk, aes(x = mntl)) +
-#  scale_y_continuous() +
-  guides(fill = guide_legend(title = "Diagnosed Depression"))
+  guides(fill = guide_legend(title = "Diagnosed Depression")) +
+  labs(title = "Proportion of Depression Diagnoses and Reported Poor Mental Health Days",
+       x = "Number of Poor Mental Health Days")
 
 dep_cmp +
-  geom_bar(aes(fill = dd), position = "fill") +
-  geom_hline(yintercept = 0.5, alpha = 0.7, color = "red")
+  geom_bar(aes(fill = dd), position = position_dodge(0.9)) +
+  ylab("Number of Respondents")
 
 dep_cmp +
-  geom_bar(aes(fill = dd), position = position_dodge(0.9))
+  geom_bar(aes(fill = dd), position = "fill", alpha = 0.7) +
+  geom_hline(yintercept = 0.5, alpha = 0.3, color = "red") +
+  labs(x = "Number of Poor Mental Health Days",
+       y = "Proportion of Respondents")
 ```
 
 People with diagnosed depression represent a majority of those who had 15 or more poor mental health days in the past 30 days.  
 
-$ P(Depressed|\textup{More than 1 bad day} ) $
+\[
+\begin{eqnarray}
 
+DD & = & \text{Individual has diagnosed depression} \\
+1+ & = & \text{Individual has had 1 or more poor mental health days in the 30 prior to being surveyed}\\
+\\
+P( DD | 1+ ) & = & \frac{P( 1+ | DD) P(DD)}{P(1+)}
 
-#TODO: Bayesian probability of being depressed given 30 bad days.
+\end{eqnarray}
+ \]
+
+```{r}
+# P_DD = 
+```
 
 Unsurprisingly, people with diagnosed depressive disorders experience worse mental health!
+
+
+**Research quesion 2:**
 
 ```{r}
 natl_avg_bad_days <- mean(sadstate$mntl)
@@ -164,9 +180,9 @@ pmh_lolliplot <- ggplot(data = bad_days_by_state %>% arrange(desc(state_avg)),
                  xend = state, yend = state_avg)) +
   geom_point(stat = "identity") +
   theme(axis.text.x = element_text(angle=90)) +
-  labs(title = "Average Poor Mental Health Days per State",
+  labs(title = "Average Poor Mental Health Days per State or Territory",
        x = "State",
-       y = "Average Days per Month of Poor Mental Health") +
+       y = "Average Days of Poor Mental Health (Within 30 Prior to Questionnaire)") +
   coord_flip()
  
 
@@ -174,33 +190,49 @@ pmh_lolliplot
 ```
 
 ```{r}
-# TODO: Make a divergent color map centered at 0, use dev and map states with deviation
-library(ggmap)
 
-geo <- geocode(location = as.character(bad_days_by_state$state), output = "latlon")
+library(maps)
+states <- map_data("state")
 
-bad_days_by_state$lat <- geo$lat
-bad_days_by_state$lon <- geo$lon
+# Recalculate averages and deviations since we've lost the 2 non-contiguous states and the territories
+somber_state <- sadstate %>%
+  filter(tolower(state) %in% unique(states$region))
 
-range_avg_dev <- range(bad_days_by_state$avg_dev)
-range_med_dev <- range(bad_days_by_state$med_dev)
+cont_avg_bad_days <- mean(somber_state$mntl)
 
-usa <- map_data("usa")
+somber_state <- somber_state %>%
+  group_by(state) %>%
+  summarise(state_avg = mean(mntl), state_med = median(mntl)) %>%
+  mutate(avg_dev = state_avg - cont_avg_bad_days)
+  
 
-pmh_map <- ggplot() +
-  geom_polygon(data = bad_days_by_state %>% na.omit(),
-               aes(x = lon, y = lat, fill = avg_dev)) +
-  coord_map()
+# Coerce the data into a mappable format
+somber_state <-inner_join(bad_days_by_state %>% mutate(region = as.character(tolower(state))),
+                          states, by = "region")
 
-pmh_map
+# Credit: http://eriqande.github.io/rep-res-web/lectures/making-maps-with-R.html
+ditch_the_axes <- theme(
+  axis.text = element_blank(),
+  axis.line = element_blank(),
+  axis.ticks = element_blank(),
+  panel.border = element_blank(),
+  panel.grid = element_blank(),
+  axis.title = element_blank()
+  )
 
-# scale_fill_gradient(colors = c(blue, white, orange),
-#                    breaks = c(-1, 0, 1))
+pmh_map <- ggplot(data = somber_state) + 
+  geom_polygon(aes(x = long, y = lat, fill = avg_dev, group = group), color = "grey") + 
+  coord_fixed(1.3) +
+  ditch_the_axes +
+  ggtitle("Poor Mental Health Days in the USA")
+
+pmh_map +
+  scale_fill_gradient2(low = "orange", mid = "white", high = "navyblue",
+                       name = "Deviation from Average")
+
 ```
 
-
-
-**Research quesion 2:**
+It seems that people in the greater southeast US suffer from worse mental health! Sandess seems to loosely spread outward from Kentucky.
 
 ```{r}
 students <- brfss2013 %>%
